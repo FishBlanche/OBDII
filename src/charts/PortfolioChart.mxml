@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Christophe Coenraets, http://coenraets.org -->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:charts="charts.*"
+		 xmlns:controls="mx.controls.*"
+		 width="100%" height="100%" clipAndEnableScrolling="true"
+		 creationComplete="completeHandler()"
+		 
+		 resize="redraw()">
+	<fx:Declarations>
+		 <s:HScrollBar id="hsc"/>
+	</fx:Declarations>
+	<s:states>
+		<s:State name="default"/>
+		<s:State name="ect"/>
+	</s:states>
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			import mx.events.MenuEvent;
+			import mx.messaging.ChannelSet;
+			import mx.messaging.channels.AMFChannel;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.remoting.RemoteObject;
+			import mx.utils.ColorUtil;
+			
+			import spark.effects.Move;
+			import spark.managers.PersistenceManager;
+			import spark.primitives.supportClasses.FilledElement;
+			
+			import charts.JackAxisArrayList;
+			 
+ 
+			
+			private var myAMF:AMFChannel=new AMFChannel();
+			private var channelSet:ChannelSet=new ChannelSet();
+			private var ro:RemoteObject = new RemoteObject();
+			private  var serveraddress:PersistenceManager = new PersistenceManager();
+			public var _data:Array;
+			protected var min:Number;
+			[Bindable]
+			protected var max:Number;
+			[Bindable]
+			public var srollerwidth:Number;
+			[Bindable]
+			public var firstDate:Date;
+			[Bindable]
+			public var lastDate:Date;
+			[Bindable]
+			public var widthdays:Number; 
+			[Bindable]
+			public var zoomdata:int=5;
+			
+			[Bindable]
+			public var itemSelected:Number=0;
+			
+			
+			public var scalex:Number = 1;
+			
+			
+			public function set data(data:Array):void
+			{
+				_data = data;
+				this.datahandler();
+			}
+			
+			public function get data():Array
+			{
+				return _data;
+			}
+			
+			public function datahandler():void
+			{
+	 
+				 
+				if(itemSelected==1)
+				{ 
+					chartName.text="电瓶电压(V)";
+				}
+				else if(itemSelected==2){	 
+					chartName.text="发动机转速(rpm)";
+				}
+				else if(itemSelected==3){ 
+					chartName.text="车速(km/h)";
+				}else if(itemSelected==4){ 
+					chartName.text="节气门开度(%)";
+				}
+				else if(itemSelected==5){ 
+					chartName.text="发动机负荷(%)";
+				}
+				else if(itemSelected==6){ 
+					this.currentState="ect";
+					chartName.text="冷却液温度水温(℃)";
+				}
+				else if(itemSelected==7){ 
+					chartName.text="邮箱剩余油量(%)";
+				}
+				else if(itemSelected==8){ 
+					chartName.text="瞬时油耗(L/h或L/100km)";
+				}
+				if(data.length <= 0){
+					return;
+				}
+			//	trace("data.length");
+			 //trace("data.length"+data.length+","+data[0].timestamparrive_tm+","+data[0].value);
+				firstDate = data[0].myDate as Date;
+				lastDate = data[data.length - 1].myDate as Date;
+				
+			// 	 trace("firstDate"+firstDate+","+"lastDate"+lastDate);
+				 
+				var tmpA:Array = new Array;
+				min =Number(data[0].myValue);
+				max = Number(data[0].myValue);
+				for (var i:int=1; i<data.length; i++)
+				{
+					//tmp = _data[i];
+					if (_data[i].myValue<min) min = _data[i].myValue;
+					if (_data[i].myValue>max) max = _data[i].myValue;					
+					tmpA.push(_data[i].myDate as Date);
+					
+				}
+			 
+				
+				hAxisData.step = 20;
+				hAxisData.allSource = tmpA;	
+				path.width=1024*5;
+				widthdays=path.width;
+				redraw();
+			}
+			
+			public function completeHandler():void
+			{
+				Multitouch.inputMode = MultitouchInputMode.GESTURE;
+				rect.addEventListener(TransformGestureEvent.GESTURE_ZOOM, zoom,false,0,true);
+				rect.addEventListener(MouseEvent.MOUSE_UP,fingerOut,false,0,true);
+			 
+			}
+		 
+			protected function zoom(e:TransformGestureEvent):void
+			{ 
+				var w:Number = path.width * e.scaleX;
+				if (e.scaleX>1)
+					path.width = w > width*15 ? width*15 : w;
+				else
+				{
+					path.width = w < width ? width : w;
+					if (path.x + path.width < width) path.x = width - path.width;
+				}
+				scalex*=e.scaleX;
+			}
+			protected function fingerOut(event:Event):void
+			{
+			//	trace("fingerOut");
+				if(scalex==1) return;
+				widthdays=path.width;
+				hAxisData.step=Math.round(widthdays/1024)*3;
+				scalex=1;	
+				redraw();
+			}
+			
+			public function redraw():void
+			{
+			//	trace("redraw()");
+				if (!data) return;
+			//	var pathData:String = "M 0 " + rect.height;
+				var pathData:String = " " ;
+				var xPos:Number;
+				var yPos:Number;
+				var tmpdata:Number;
+			//	trace(lastDate+"-------------"+firstDate);
+				var alltime:Number = lastDate.time - firstDate.time;
+				for (var i:int=data.length-1; i>=0; i--)
+				{
+					 
+					 tmpdata=data[i].myValue;
+				//	trace("tmpdata"+tmpdata);
+					 if(this.currentState=="ect")
+					 {
+						 yPos = rect.height - (tmpdata+40)/(max+40) * rect.height;
+					 }
+					 else if(this.currentState=="default")
+					 {
+						 yPos = rect.height - (tmpdata)/(max) * rect.height;
+					 }
+					
+					xPos = (-data[i].myDate.time+lastDate.time)/alltime * width;
+					 
+					 if(i==data.length-1)
+					 {
+						 pathData += " M " + xPos + " " + yPos;
+					 }
+					 else
+					 {
+						 pathData += " L " + xPos + " " + yPos;
+					 }
+						
+					 
+					
+				}
+				//trace("xPos yPos"+xPos+","+rect.height);
+			// 	pathData += "L " + xPos + " " + rect.height + " z";
+				path.data = pathData;
+			}
+			//#00719b
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:CurrencyFormatter id="cf" useCurrencySymbol="true" currencySymbol="$" fractionalDigits="0"/>
+		<s:DateTimeFormatter id="df" dateTimePattern="MM/dd HH:mm"/>
+		<s:NumberFormatter fractionalDigits="2" id="nf">
+		</s:NumberFormatter>
+		<charts:JackAxisArrayList id="hAxisData"/>
+	</fx:Declarations>
+	
+	<!--s:Line top="20" left="60" right="0">
+		<s:stroke>
+			<s:SolidColorStroke weight="1" color="#ffffff"/>
+		</s:stroke>
+	</s:Line>
+	<s:Line  top="{rect.height/4*2+20}"  left="60" right="0">
+		<s:stroke>
+			<s:SolidColorStroke weight="1" color="#ffffff"/>
+		</s:stroke>
+	</s:Line>
+	<s:Line top="{rect.height/4+20}" left="60" right="0">
+		<s:stroke>
+			<s:SolidColorStroke weight="1" color="#ffffff"/>
+		</s:stroke>
+	</s:Line>
+	<s:Line top="{rect.height/4*3+20}" left="60" right="0">
+		<s:stroke>
+			<s:SolidColorStroke weight="1" color="#ffffff"/>
+		</s:stroke>
+	</s:Line-->
+	
+	<s:Label top="0" fontSize="15" id="chartName" text="" left="60"   color="#ffffff" fontFamily="Verdana"/>
+	<s:Label includeIn="default"  top="20" left="4" text="{nf.format(max)}" fontSize="12" color="#ffffff" fontFamily="Verdana"/>
+	<s:Label includeIn="default" top="{rect.height/4+20}" left="4" text="{nf.format(max/4*3)}" fontSize="12" color="#ffffff" fontFamily="Verdana"/>
+	<s:Label includeIn="default" top="{rect.height/4*3+20}" left="4" text="{nf.format(max/4)}" fontSize="12" color="#ffffff" fontFamily="Verdana"/>
+	<s:Label  includeIn="default" top="{rect.height/4*2+20}"  left="4" text="{nf.format(max/2)}" fontSize="12" color="#ffffff" fontFamily="Verdana"/>
+	
+	<s:Label  includeIn="ect"  top="20" left="4" text="{nf.format(max)}" fontSize="12" color="#ffffff" fontFamily="Verdana"/>
+	<s:Label  includeIn="ect" top="{rect.height/4+20}" left="4" text="{nf.format((-40+(max+40)/4*3))}" fontSize="12" color="#ffffff" fontFamily="Verdana"/>
+	<s:Label includeIn="ect" top="{rect.height/4*3+20}" left="4" text="{nf.format((-40+(max+40)/4*1))}" fontSize="12" color="#ffffff" fontFamily="Verdana"/>
+	<s:Label  includeIn="ect" top="{rect.height/4*2+20}"  left="4" text="{nf.format((-40+(max+40)/4*2))}" fontSize="12" color="#ffffff" fontFamily="Verdana"/>
+	
+	<s:Scroller horizontalScrollBar="{hsc}" verticalScrollPolicy="off" id="scroller" top="20" bottom="0" left="0" right="0">
+		
+		<s:Group id="rect" top="50" bottom="0" left="0" right="0">
+			
+			<s:DataGroup dataProvider="{hAxisData}" top="0" bottom="0" left="0"   right="0"
+						 >
+				<s:itemRenderer>
+					<fx:Component>
+						<s:DataRenderer height="{outerDocument.rect.height}"
+										width="{outerDocument.widthdays/outerDocument.hAxisData.length}"
+										>
+							<s:Label  left="0"  textAlign="left" text="{outerDocument.df.format(data) }"  bottom="4" fontSize="12" color="#ffffff"/>
+							<s:Line  left="25"  height="5" bottom="24">
+								<s:stroke>
+									<s:SolidColorStroke color="#ffffff" weight="1" />
+								</s:stroke>
+							</s:Line>
+						</s:DataRenderer>
+					</fx:Component>
+				</s:itemRenderer>
+				<s:layout>
+					<s:HorizontalLayout gap="-1"/>
+				</s:layout>
+			</s:DataGroup>
+			
+			<s:Path   id="path"  width="{width*5}"  height="100%">				
+				<s:stroke>
+					<!--s:SolidColorStroke  color="#00719b" weight="2" alpha="0.6"/-->
+					<s:SolidColorStroke  color="#ffffff" weight="2" alpha="1"/>
+				</s:stroke>
+				<!--s:fill>
+					<s:LinearGradient rotation="90">
+						<s:GradientEntry  color="#00BAFF" ratio="0" alpha="0.3"/>                
+						<s:GradientEntry color="#00719b" ratio="1" alpha="0.3"/>
+					</s:LinearGradient>
+				</s:fill-->
+				
+			</s:Path>
+			
+		</s:Group>
+		
+	</s:Scroller>
+	
+</s:Group>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx1:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009"  horizontalScrollPolicy="off"  verticalScrollPolicy="off" 
+			xmlns:s="library://ns.adobe.com/flex/spark" xmlns:mx1="library://ns.adobe.com/flex/mx" xmlns:chart="charts.*" show="init()"  hideEffect="{wipeDown}"  showEffect="{wipeUp}"  >
+	<fx:Declarations>
+		<mx1:WipeDown id="wipeDown" duration="600"/>
+		<mx1:WipeUp id="wipeUp" duration="600"/>
+	 <s:VScrollBar id="vsc"/>
+	</fx:Declarations>
+	 
+		<fx:Style>
+		
+		.vscroll
+		{
+			thumbSkin:Embed(source="assets/thumb.png");
+			trackSkin: Embed(source="assets/track.png");
+			downArrowSkin:Embed(source="assets/down.png");
+			upArrowSkin:Embed(source="assets/up.png");
+			height:2;
+		}
+		
+	</fx:Style>
+	<s:Image   source="@Embed('assets/blur.png')" width="{this.width}" height="{this.height}" smooth="true" cacheAsBitmap="true" scaleMode="stretch"/>
+	<mx1:Button click="back()" verticalGap="-1" x="{this.width-68}" y="10"   skin="@Embed('assets/backIconbg.png')" icon="@Embed('assets/backIcon.png')" labelPlacement="bottom" label="返回"  width="65" height="65"  fontFamily="Verdana" fontSize="18" color="haloblue" textRollOverColor="haloblue" textSelectedColor="haloblue"/>
+<fx:Script>
+	<![CDATA[
+ 
+		private function back():void
+		{
+			dispatchEvent(new Event("backToHistory",true));
+		}
+		private function init():void {
+			 
+		//	vsc.setStyle("skinClass", VScrollBarSkin);
+		//	vsc.setStyle( "fixedThumbSize", true);
+		 
+			 
+		}
+	]]>
+</fx:Script>
+	 
+	<s:Scroller  verticalScrollBar="{vsc}"     horizontalScrollPolicy="off"   top="60"  color="haloblue"    id="scrllr"  styleName="vscroll"     width="{this.width}" height="{this.height}"  >
+	 
+		<s:VGroup    gap="{this.height*0.1}"    width="{this.width}"  id="PC"  >
+			<chart:PortfolioChart id="vbatchart" itemSelected="1"     width="{this.width}" height="{this.height*0.25}"/>
+			<chart:PortfolioChart id="rpmchart" itemSelected="2"     width="{this.width}" height="{this.height*0.25}"/>
+			<chart:PortfolioChart id="spdchart" itemSelected="3"    width="{this.width}" height="{this.height*0.25}"/>
+			<chart:PortfolioChart id="tpchart" itemSelected="4"    width="{this.width}" height="{this.height*0.25}"/>
+			<chart:PortfolioChart id="lodchart" itemSelected="5"    width="{this.width}" height="{this.height*0.25}"/>
+			<chart:PortfolioChart id="ectchart" itemSelected="6"     width="{this.width}" height="{this.height*0.25}"/>
+			<chart:PortfolioChart id="flichart" itemSelected="7"    width="{this.width}" height="{this.height*0.25}"/>
+			<chart:PortfolioChart id="mphchart" itemSelected="8"    width="{this.width}" height="{this.height*0.25}"/>
+			<s:Group height="40"/>
+		</s:VGroup>
+		 
+	</s:Scroller>
+</mx1:Canvas>

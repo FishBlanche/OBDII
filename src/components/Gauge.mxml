@@ -1,0 +1,616 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"  creationComplete="init(event)" >
+ 		 
+	<fx:Script>
+		<![CDATA[
+			import flash.text.TextField;
+			import flash.text.TextFieldAutoSize;
+			import flash.text.TextFormat;
+			
+			import mx.core.FlexSprite;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			import mx.formatters.NumberFormatter;
+			
+			import spark.components.Group;
+		 
+			private var minValue:Number;//刻度最小值
+			private var maxValue:Number;//刻度最大值fff
+ 
+			private var _angleFrom:Number = Math.PI * 0.75;//起始角度
+			private var _angleTo:Number = Math.PI*2.25;   //结束角度f
+			
+			private var _angleValue:Number = _angleFrom; //要变换的角度
+			[Bindable]
+			private var _centerx:Number =0; //中心点x
+			private var _centery:Number =0; //中心点y
+			
+			private var _radius:Number =0; //半径x
+			
+			private var sp:UIComponent=new UIComponent;
+			
+			private var _ell3Color:uint =0x3399CC;//表盘颜色
+			
+			private var _tickColor:uint = 0xFFFFFF;//刻度颜色
+			
+			private var _tickFontColor:uint = 0xffffff;//字体颜色
+			private var _tickFontSize:int =17;			//字体大小
+			private var _tickFontFamily:String = "Verdana";//字体
+			private var _labelsRadius:Number = -20;      //数字位置半径
+			
+			private var _pointerColor:uint = 0xff3333;//指针颜色
+			
+			private var _majorTickLength:Number = 15;//主要刻度长度
+			
+			private var _calibrations:Array=[] ;//刻度
+			private var labels:Array = new Array(); //刻度数字
+			
+			private var logo:TextField = new TextField();//logo
+			private var _logoText:String="";
+			
+			private var unit:TextField = new TextField();//logo
+			private var _unitText:String="";
+			
+			private var temperature:TextField = new TextField();//温度值文本框
+			private var _temperatureVal:Number =0;//默认温度数值
+			private var _temperatureValColor:uint = 0xffffff;//默认温度数值颜色
+			private var _temperatureValSize:int = 20;  //默认温度数值字体大小
+
+			
+			public function get unitText():String
+			{
+				return _unitText;
+			}
+
+			public function set unitText(value:String):void
+			{
+				_unitText = value;
+				generateU();
+			}
+
+			public function get calibrations():Array
+			{
+				return _calibrations;
+			}
+
+			public function set calibrations(value:Array):void
+			{
+			// 	trace("set cali");
+				_calibrations = value;
+			}
+
+			public function get logoText():String
+			{
+				return _logoText;
+			}
+
+			public function set logoText(value:String):void
+			{
+				_logoText = value;
+				generateC();
+			}
+
+			protected function init(event:FlexEvent):void
+			{
+				   addElementAt(sp,4);
+				 
+			}
+			
+			[Bindable]
+			public function set temperatureValSize(val:uint):void{
+				_temperatureValSize = val;
+				generateTemperature();//改变温度数值与颜色
+			}
+			public function get temperatureValSize():uint{
+				return _temperatureValSize;
+			}
+			
+			
+			[Bindable]
+			public function set temperatureValColor(val:uint):void{
+				_temperatureValColor = val;
+				generateTemperature();//改变温度数值与颜色
+			}
+			public function get temperatureValColor():uint{
+				return _temperatureValColor;
+			}
+			
+			[Bindable]
+			public function set temperatureVal(val:Number):void{
+				_temperatureVal = val;
+			}
+			public function get temperatureVal():Number{
+				return _temperatureVal;
+			}
+			[Bindable]
+			public function set radius(val:Number):void{
+				//trace("set radius");
+				_radius = val;
+				generateCurve();//曲线
+				generateTicks();//刻度
+				generateRangeColor();//范围颜色
+			}
+			public function get radius():Number{
+				return _radius;
+			}
+			
+			public function set labelsRadius(val:Number):void{
+				_labelsRadius = val;
+				generateLabels();//添加刻度数字
+			}
+			public function get labelsRadius():Number{
+				return _labelsRadius;
+			}
+			
+			public function set tickFontFamily(val:String):void{
+				_tickFontFamily = val;
+				generateLabels();//添加刻度数字
+			}
+			public function get tickFontFamily():String{
+				return _tickFontFamily;
+			}
+			
+			public function set tickFontSize(val:uint):void{
+				_tickFontSize = val;
+				generateLabels();//添加刻度数字
+			}
+			public function get tickFontSize():uint{
+				return _tickFontSize;
+			}
+			
+			public function set tickFontColor(val:uint):void{
+				_tickFontColor = val;
+				generateLabels();//添加刻度数字
+				generateRangeColor();//范围颜色
+			}
+			public function get tickFontColor():uint{
+				return _tickFontColor;
+			}
+			
+			public function set tickColor(val:uint):void{
+				//trace("set tickColor");
+				_tickColor = val;
+				generateCurve();//曲线
+				generateTicks();//刻度
+				generateLabels();//添加刻度数字
+				generateRangeColor();//范围颜色
+			}
+			public function get tickColor():uint{
+				return _tickColor;
+			}
+			public function set pointerColor(val:uint):void{
+				_pointerColor = val;
+				var fill:SolidColor = new SolidColor(val,0.8);
+				var sk:SolidColorStroke = new SolidColorStroke(val,2);
+				pointer.fill = fill;
+				pointer.stroke = sk;
+				
+			}
+			public function get pointerColor():uint{
+				return _pointerColor;
+			}
+			public function set ell3Color(val:uint):void{
+				_ell3Color = val;
+				var fill:SolidColor = new SolidColor(_ell3Color);
+			 	ell3.fill = fill;
+				
+			}
+			public function get ell3Color():uint{
+				return _ell3Color;
+			}
+			
+			public function set majorTickLength(val:Number):void{
+				_majorTickLength = val;
+				pointerAngle();
+			}
+			public function get majorTickLength():Number{
+				return _majorTickLength;
+			}
+			
+			public function set angleFrom(val:Number):void{
+				_angleFrom = val;
+			}
+			public function get angleFrom():Number{
+				return _angleFrom;
+			}
+			
+			public function set angleTo(val:Number):void{
+				_angleTo = val;
+			}
+			public function get angleTo():Number{
+				return _angleTo;
+			}
+			
+			
+			public function set angleValue(val:Number):void{//计算温度值的弧度
+				 
+				//trace("angleValue "+val+","+logoText);
+				temperatureVal =val;
+				var sweep:Number = angleTo - angleFrom;
+				var gradAngle:Number = sweep / (calibrations.length - 1);
+	
+				if(val >= calibrations[calibrations.length - 1]){
+					_angleValue = angleTo ;
+				}else if(val <= calibrations[0]){
+					_angleValue = angleFrom;
+			//	 	trace("val <= calibrations[0]"+logoText);
+				}else{
+					for(var i:int = 0;i<calibrations.length;i++){
+						if(val >= calibrations[i] &&  val < calibrations[i+1]){
+					//		 trace("val i"+i+","+val+","+logoText);
+							_angleValue = i*gradAngle  +  ((val - calibrations[i]) /(calibrations[1]-calibrations[0])*gradAngle) + angleFrom;
+							break;
+						}
+					}
+				}
+				
+				pointerAngle();//改变角度
+				generateTemperature();//改变温度数值
+			}
+			public function get angleValue():Number{
+				return _angleValue;
+			}
+			override public function set width(value:Number):void{
+				_centerx = value/2;
+				_radius = value/2 * 0.67;
+				super.width = value;
+				// trace("Change Width."+_centerx);
+				setWidthAndHeight(value);
+			}
+
+			override public function set height(value:Number):void{
+				_centery = value/2;
+				_radius = value/2 * 0.67;
+				super.height = value;
+			//	 trace("Change height.");
+				setWidthAndHeight(value);
+			}
+
+			public function setWidthAndHeight(val:Number):void{//设置大小
+			//	 trace("setWidthAndHeight");
+				generateCurve();//曲线
+				generateRangeColor();
+				generateTicks();//刻度
+				
+				generateLabels();//添加刻度数字
+				generateC();//LOGO
+				generateU();//UINIT
+				generateTemperature();//温度值
+				//trace(height+":"+width);
+			 
+				ell1.width  = val;
+				ell1.height = val;
+				ell1.x = _centerx - ell1.width/2;
+				ell1.y = _centery - ell1.height/2; 
+				/*
+				ell2.width =  val * 0.92;
+				ell2.height = val * 0.92;
+				ell2.x = _centerx - ell2.width/2;
+				ell2.y = _centery - ell2.height/2;*/
+				 
+				ell3.width =  val * 0.95;
+				ell3.height = val * 0.95;
+				ell3.x = _centerx - ell3.width/2;
+				ell3.y = _centery - ell3.height/2; 
+				 
+				ell4.width =  val * 0.1;
+				ell4.height = val * 0.1;
+				ell4.x = _centerx - ell4.width/2;
+				ell4.y = _centery - ell4.height/2; 
+				/*
+				ell5.width =  val * 0.08;
+				ell5.height = val * 0.08;
+				ell5.x = _centerx - ell5.width/2;
+				ell5.y = _centery - ell5.height/2;*/
+			/*	
+				ell6.width =  val * 0.04;
+				ell6.height = val * 0.04;
+				ell6.x = _centerx - ell6.width/2;
+				ell6.y = _centery - ell6.height/2;*/
+				
+				pointer.width =60 ;
+				pointer.height = _centery *0.1;
+				
+				pointer.x = _centerx - pointer.width * 0.3  ;
+				pointer.y = _centery - pointer.height /2  ;
+				
+				pointerAngle();
+//				var rotateMatrix:Matrix = new Matrix();
+//				rotateMatrix.rotate(_angleValue);
+//				var newCenter:Point = rotateMatrix.deltaTransformPoint(new Point(pointer.width*0.3,pointer.height/2));
+//				rotateMatrix.translate((height/2 - newCenter.x),(width/2 - newCenter.y));
+//				pointer.transform.matrix = rotateMatrix;
+				
+			}
+			public function pointerAngle():void{////改变指针角度
+				//trace("pointerAngle"+angleValue);
+				rotateEffect.angleTo = angleValue * 180 / Math.PI;  
+			 
+				rotateEffect.play();
+//				var rotateMatrix:Matrix = new Matrix();
+//				rotateMatrix.rotate(_angleValue);
+//				var newCenter:Point = rotateMatrix.deltaTransformPoint(new Point(pointer.width*0.3,pointer.height /2));
+//				rotateMatrix.translate((_centerx - newCenter.x),(_centery - newCenter.y));
+//				pointer.transform.matrix = rotateMatrix;
+			}
+
+			//曲线
+			private function generateCurve():void
+			{
+				majorTickLength = _radius * 0.06;//刻度长度
+				sp.graphics.clear();            //清除原来刻度
+				sp.graphics.lineStyle(2,tickColor);
+				tools.circCurveTo(sp.graphics,angleFrom,angleTo,_centerx,_centery,_radius -2);//曲线  半径减2是为了刻度有点没对齐调整用
+			}
+			//绘制刻度
+			private function generateTicks():void
+			{
+				var sweep:Number = _angleTo - _angleFrom;//曲线的总长度 以弧度表示
+				 
+				var gradAngle:Number = sweep / (calibrations.length - 1);//主刻度的平均间隔
+				//trace("执行刻度方法"+sweep+"="+gradAngle+" 长度:"+calibrations.length);
+				for(var i:int = 0;i < calibrations.length; i++)
+				{
+					//trace("循环刻度");
+					sp.graphics.lineStyle(2,tickColor);
+					sp.graphics.moveTo(Math.cos(angleFrom + (i * gradAngle)) * (_radius + majorTickLength ) + _centerx,
+									   Math.sin(angleFrom + (i * gradAngle)) * (_radius + majorTickLength ) + _centery);
+					sp.graphics.lineTo(Math.cos(angleFrom + (i * gradAngle)) * (_radius ) + _centerx,
+									   Math.sin(angleFrom + (i * gradAngle)) * (_radius ) + _centery);
+					sp.graphics.lineStyle(1,tickColor);
+					if( i != (calibrations.length - 1)){//最后一个不画
+						sp.graphics.moveTo(Math.cos(angleFrom + (i * gradAngle) + (gradAngle/2)) * (_radius +majorTickLength-3) + _centerx,
+										   Math.sin(angleFrom + (i * gradAngle) + (gradAngle/2)) * (_radius +majorTickLength-3) + _centery);
+						sp.graphics.lineTo(Math.cos(angleFrom + (i * gradAngle) + (gradAngle/2)) * (_radius ) + _centerx,
+							               Math.sin(angleFrom + (i * gradAngle) + (gradAngle/2)) * (_radius ) + _centery);	
+					}
+					if( i != (calibrations.length - 1)){//最后一个不画
+						sp.graphics.moveTo(Math.cos(angleFrom + (i * gradAngle) + (gradAngle/4)) * (_radius +majorTickLength -3) + _centerx,
+									       Math.sin(angleFrom + (i * gradAngle) + (gradAngle/4)) * (_radius +majorTickLength -3) + _centery);
+						sp.graphics.lineTo(Math.cos(angleFrom + (i * gradAngle) + (gradAngle/4)) * (_radius ) + _centerx,
+										   Math.sin(angleFrom + (i * gradAngle) + (gradAngle/4)) * (_radius ) + _centery);	
+						
+						sp.graphics.moveTo(Math.cos(angleFrom + (i * gradAngle) + (3*gradAngle/4)) * (_radius +majorTickLength -3) + _centerx,
+										   Math.sin(angleFrom + (i * gradAngle) + (3*gradAngle/4)) * (_radius +majorTickLength -3) + _centery);
+						sp.graphics.lineTo(Math.cos(angleFrom + (i * gradAngle) + (3*gradAngle/4)) * (_radius ) + _centerx,
+										   Math.sin(angleFrom + (i * gradAngle) + (3*gradAngle/4)) * (_radius ) + _centery);	
+					}
+				}
+			}
+			//添加刻度数字
+			private function generateLabels():void         
+			{
+				//变大变小时删除原来数字
+				if(labels != null)
+				{
+					for(var x:int = 0;x < labels.length;x++)
+					{
+						if(sp.contains(labels[x]))
+						{
+							sp.removeChild(labels[x]);
+						}
+					}
+					//delete all labels
+					labels.splice(0,labels.length);
+				}
+				//下面是添加数字到数组
+				for(var i:int = 0;i < calibrations.length; i++)
+				{
+					var tf2:TextField = new TextField();
+					tf2.antiAliasType = AntiAliasType.ADVANCED;
+					tf2.autoSize = TextFieldAutoSize.LEFT;
+					tf2.text = calibrations[i];
+					tf2.selectable = false;
+					
+					var format:TextFormat = new TextFormat(tickFontFamily,tickFontSize,tickFontColor);
+					//format.font = "Verdana";
+					//format.color = 0xFF0000;
+					//format.size = 20;
+					//format.underline = true;
+					tf2.setTextFormat(format);
+					labels.push(tf2);
+					sp.addChild(tf2);
+				}
+				//下面是添加数字到表盘
+				var sweep:Number = angleTo - angleFrom;
+				var gradAngle:Number = sweep / (calibrations.length - 1); 
+				
+				for(var j:int =0;j<labels.length;j++){
+					var angle:Number = angleFrom+ (j*gradAngle);
+					labels[j].x = Math.cos(angle)*(_radius-labelsRadius)+_centerx-(labels[j].width/2);
+					labels[j].y = Math.sin(angle)*(_radius-labelsRadius)+_centery-(labels[j].height/2);
+				}
+
+			}
+			private function generateC():void{//添加LOGO
+				
+				if(sp.contains(logo))
+				{
+					sp.removeChild(logo);
+				}
+				logo.antiAliasType = AntiAliasType.ADVANCED;
+				logo.autoSize = TextFieldAutoSize.LEFT;
+				logo.text = logoText;
+				logo.selectable = false;
+				
+				var format:TextFormat = new TextFormat();
+				format.font = tickFontFamily;
+				format.color = tickFontColor;
+				format.size = 11;
+				format.underline = false;
+				logo.setTextFormat(format);
+				sp.addChild(logo);
+				logo.x = _centerx - logo.width/2;
+				logo.y = _centery + _centery * 0.6;
+				
+			}
+			private function generateU():void{//添加LOGO
+				
+				if(sp.contains(unit))
+				{
+					sp.removeChild(unit);
+				}
+				unit.antiAliasType = AntiAliasType.ADVANCED;
+				unit.autoSize = TextFieldAutoSize.LEFT;
+				unit.text = unitText;
+				unit.selectable = false;
+				
+				var format:TextFormat = new TextFormat();
+				format.font = tickFontFamily;
+				format.color = tickFontColor;
+				format.size = 11;
+				format.underline = false;
+				unit.setTextFormat(format);
+				sp.addChild(unit);
+				unit.x = _centerx - unit.width/2;
+				unit.y = _centery - _centery * 0.3;
+				
+			}
+			private function generateTemperature():void{//添加温度值
+				
+				var nf:NumberFormatter = new NumberFormatter();
+				nf.precision =1;
+				
+				if(sp.contains(temperature))
+				{
+					sp.removeChild(temperature);
+				}
+				temperature.antiAliasType = AntiAliasType.ADVANCED;
+				temperature.autoSize = TextFieldAutoSize.LEFT;
+				temperature.text = nf.format( temperatureVal);
+				temperature.selectable = false;
+				
+				//
+				
+				var format:TextFormat = new TextFormat();
+				format.font = "Verdana";
+				format.color = temperatureValColor;
+				format.size = temperatureValSize;
+				format.underline = false;
+				temperature.setTextFormat(format);
+				sp.addChild(temperature);
+				temperature.x = _centerx - temperature.width/2;
+				temperature.y = _centery + _centery * 0.3- temperature.height/2;
+				
+			}
+			
+			private function generateRangeColor():void{//范围颜色
+				
+				var matrix:Matrix = new Matrix();
+				matrix.createGradientBox(width*0.7,height*0.7,0,50,50);
+				sp.graphics.lineStyle(0,ell3Color,0);
+				sp.graphics.beginGradientFill(GradientType.LINEAR,[0x40835e,0xe0861a,0xf26522],[1,1,1],[80,127,220],matrix);
+				tools.rangeColor(sp.graphics,angleFrom,angleTo,_centerx,_centery,_radius );
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:Rotate id="rotateEffect" target="{pointer}"  applyChangesPostLayout="true"
+				  transformX="{pointer.width * 0.3}" transformY="{pointer.height /2}" easer="{easer}" />
+		<s:Elastic id="easer" />
+	</fx:Declarations>
+	 
+
+	<!--s:Rect radiusX="5" top="0" left="0" right="0" bottom="0" alpha="0.0">
+		<s:fill>
+			<s:SolidColor color="#e1ffbb"/>
+		</s:fill>
+		<s:stroke>
+			<s:SolidColorStroke color="#bad47f" weight="2"/>
+		</s:stroke>
+	</s:Rect-->
+	 
+		<s:Ellipse id="ell1" x="-81" y="180" width="{width}" height="{height}" rotation="-40"
+				   transformX="{this.width/2}" transformY="{this.height/2}">
+			<s:stroke>
+				<s:SolidColorStroke caps="none" color="#666666" joints="miter" miterLimit="4"
+									weight="1"/>
+			</s:stroke>
+			<s:fill>
+				<s:LinearGradient rotation="90">
+					<s:GradientEntry alpha="1.0" color="#FFFFFF" ratio="0"/>
+					<s:GradientEntry alpha="1.0" color="#999999" ratio="1"/>
+				</s:LinearGradient>
+			</s:fill>
+			<!--s:filters>
+			<s:DropShadowFilter alpha="0.5" angle="45.0" blurX="4.0" blurY="4.0" color="#000000"
+			distance="4.0" hideObject="false" inner="false" knockout="false"
+			quality="2" strength="1"/>
+			</s:filters-->
+		</s:Ellipse>
+		
+		<!--s:Ellipse id="ell2" x="-57" y="179" width="{width*0.92}" height="{height*0.92}" rotation="-40" transformX="{ell2.width/2}"
+		transformY="{ell2.height/2}" alpha="0.8">
+		<s:fill>
+		<s:LinearGradient rotation="90">
+		<s:GradientEntry alpha="1.0" color="#999999" ratio="0.11764705882352941"/>
+		<s:GradientEntry alpha="1.0" color="#FFFFFF" ratio="1"/>
+		</s:LinearGradient>
+		</s:fill>
+		</s:Ellipse-->
+		
+		<s:Ellipse id="ell3" x="-48.433" y="178.604" width="{width*0.95}" height="{height*0.95}" rotation="-40" transformX="{ell3.width/2}"
+				   transformY="{ell3.height/2}" alpha="1">
+			<s:fill>
+				<s:SolidColor color="{ell3Color}"/>
+			</s:fill>
+			<!--s:filters>
+			<s:DropShadowFilter alpha="0.3" angle="45.0" blurX="40" blurY="40" color="#000000"
+			distance="4.0" hideObject="false" inner="true" knockout="false"
+			quality="2" strength="1"/>
+			</s:filters-->
+		</s:Ellipse>
+		
+		<s:Path id="pointer"  width="{_centerx}" height="{height*0.1}"
+				data="M 200 5 L 0 0 Q -5 5 0 10 Z">
+			
+			<s:fill>
+				<s:SolidColor color="{pointerColor}"/>
+			</s:fill>
+			<s:stroke>
+				<s:SolidColorStroke caps="round" color="{pointerColor}" joints="round" miterLimit="0" weight="2"/>
+			</s:stroke>
+			<!--s:filters>
+			
+			<s:DropShadowFilter alpha="0.5" angle="45.0" blurX="4.0" blurY="4.0" color="#000000"
+			distance="4.0" hideObject="false" inner="false" knockout="false"
+			quality="2" strength="1"/>
+			</s:filters-->
+		</s:Path>
+		
+		<s:Ellipse id="ell4" x="172" y="183" width="{width*0.1}" height="{height*0.1}" transformX="{ell4.width/2}" transformY="{ell4.height/2}">
+			<s:fill>
+				<s:LinearGradient rotation="90">
+					<s:GradientEntry alpha="1.0" color="#FFFFFF" ratio="0"/>
+					<s:GradientEntry alpha="1.0" color="#999999" ratio="1"/>
+				</s:LinearGradient>
+			</s:fill>
+			
+		</s:Ellipse>
+		<!--s:Ellipse id="ell5" x="167" y="210" width="{width*0.8}" height="{height*0.8}" rotation="-40" transformX="{ell5.width/2}" transformY="{ell5.height/2}">
+		<s:fill>
+		<s:LinearGradient rotation="90">
+		<s:GradientEntry alpha="1.0" color="#000000" ratio="0"/>
+		<s:GradientEntry alpha="1.0" color="#666666" ratio="1"/>
+		</s:LinearGradient>
+		</s:fill>
+		</s:Ellipse-->
+		<!--s:Ellipse id="ell6" x="181" y="212" width="{width*0.4}" height="{height*0.4}" rotation="-40" transformX="{ell6.width/2}" transformY="{ell6.height/2}">
+		<s:fill>
+		<s:LinearGradient rotation="90">
+		<s:GradientEntry alpha="1.0" color="#999999" ratio="0"/>
+		<s:GradientEntry alpha="1.0" color="#000000" ratio="1"/>
+		</s:LinearGradient>
+		</s:fill>
+		<s:filters>
+		<s:DropShadowFilter alpha="0.5" angle="45.0" blurX="4.0" blurY="4.0" color="#999999"
+		distance="4.0" hideObject="false" inner="false" knockout="false"
+		quality="2" strength="1"/>
+		</s:filters>
+		</s:Ellipse-->
+ 
+ </s:Group>

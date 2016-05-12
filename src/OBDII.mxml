@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ViewNavigatorApplication xmlns:fx="http://ns.adobe.com/mxml/2009"    
+							xmlns:s="library://ns.adobe.com/flex/spark" xmlns:mx="library://ns.adobe.com/flex/mx" firstView="views.OBDIIView"   splashScreenImage="components.MyScreenImageSource"
+							splashScreenScaleMode="stretch"  splashScreenMinimumDisplayTime="1000" preinitialize="init()">
+	<fx:Script>
+		<![CDATA[
+			//splashScreenImage="components.MyScreenImageSource"splashScreenMinimumDisplayTime="1000"
+			//splashScreenScaleMode="stretch"
+			private function init():void
+			{
+				 
+				this.addEventListener(Event.ADDED_TO_STAGE,onAddToStage,false,0,true);
+			}
+		    private	function onAddToStage(event:Event):void{
+				this.addEventListener(KeyboardEvent.KEY_DOWN,KeyboardListener,false,0,true);
+				this.addEventListener(MouseEvent.MOUSE_DOWN,moveWindow,false,0,true)
+ 			}
+			public static  function moveWindow(e:MouseEvent):void
+			{
+		//     	NativeApplication.nativeApplication.activeWindow.startMove();
+			}
+			private function KeyboardListener(event:KeyboardEvent):void{
+				
+				if(event.keyCode==Keyboard.ESCAPE){
+					NativeApplication.nativeApplication.activeWindow.minimize();
+				}
+			}
+		]]>
+	</fx:Script>
+</s:ViewNavigatorApplication>

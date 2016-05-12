@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx1:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			xmlns:s="library://ns.adobe.com/flex/spark" xmlns:mx1="library://ns.adobe.com/flex/mx" xmlns:comps="components.*" verticalScrollPolicy="off" horizontalScrollPolicy="off">
+	<fx:Script>
+		<![CDATA[
+			private function rpmComplete():void
+			{
+				circularGaugeRPM.logoText="发动机转速";
+				circularGaugeRPM.radius=45;
+				circularGaugeRPM.labelsRadius=-15;
+				circularGaugeRPM.unitText="r/min";
+			}
+			private function spdComplete():void
+			{
+				circularGaugeSPD.logoText="车速" ;
+				circularGaugeSPD.radius=45;
+				circularGaugeSPD.labelsRadius=-15;
+				circularGaugeSPD.unitText="km/h";
+			}
+			private function tpComplete():void
+			{
+				circularGaugeTP.logoText="节气门开度";
+				circularGaugeTP.radius=45;
+				circularGaugeTP.labelsRadius=-15;
+				circularGaugeTP.unitText="%";
+			}
+			private function lodComplete():void
+			{
+				circularGaugeLOD.logoText="发动机负荷";
+				circularGaugeLOD.radius=45;
+				circularGaugeLOD.labelsRadius=-15;
+				circularGaugeLOD.unitText="%";
+			}
+		]]>
+	</fx:Script>
+	<comps:Gauge  calibrations="[0,1640,3280,4920,6560,8200,9840,11480,13120,14760,16400]"         x="20" y="0" width="150" height="150"    id="circularGaugeRPM" temperatureValSize="12"  tickFontSize="8" tickColor="#ffffff"  creationComplete="rpmComplete()"   
+					   />
+	<comps:Gauge  calibrations="[0,25.5,51,76.5,102,127.5,153,178.5,204,229.5,255]"        id="circularGaugeSPD" x="20" y="155" width="150" height="150"  tickFontSize="8" tickColor="#ffffff" temperatureValSize="12"    creationComplete="spdComplete()"
+					   />
+	<comps:Gauge   calibrations="[0,10,20,30,40,50,60,70,80,90,100]"         x="20" y="310" width="150" height="150"    id="circularGaugeTP" temperatureValSize="12"  tickFontSize="8" tickColor="#ffffff"      creationComplete="tpComplete()"
+					   />
+	<comps:Gauge  calibrations="[0,10,20,30,40,50,60,70,80,90,100]"        id="circularGaugeLOD" x="20" y="465" width="150" height="150"  tickFontSize="8" tickColor="#ffffff" temperatureValSize="12"  creationComplete="lodComplete()"
+				/>
+</mx1:Canvas>

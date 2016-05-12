@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx1:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009"   
+			xmlns:s="library://ns.adobe.com/flex/spark"  xmlns:mx1="library://ns.adobe.com/flex/mx" verticalScrollBarStyleName="vscroll" horizontalScrollPolicy="off"   hideEffect="{wipeUp}" showEffect="{wipeDown}"   width="220" height="240" show="addToStage()" removedFromStage="removeHandle()"   >
+	 <mx1:states>
+		 <mx1:State name="default"/>
+	 </mx1:states>
+	<fx:Declarations>
+		<mx1:WipeDown id="wipeDown" duration="600"/>
+		<mx1:WipeUp id="wipeUp" duration="600"/>
+		<mx1:Fade id="fadein" alphaTo="0" duration="600"/>
+ 	</fx:Declarations>
+	
+		<fx:Style>
+		 
+		.vscroll
+		{
+			thumbSkin:Embed(source="assets/thumb.png");
+			trackSkin: Embed(source="assets/track.png");
+			downArrowSkin:Embed(source="assets/down.png");
+			upArrowSkin:Embed(source="assets/up.png");
+			height:2;
+		}
+	 
+	</fx:Style>
+	<fx:Script>
+		<![CDATA[
+			import mx.controls.Label;
+			
+			import spark.components.Label;
+			
+			import model.MyEvent;
+		 
+	    	private	var timer:Timer;
+			private function addToStage():void
+			{
+				// trace("functionaddToStage()");
+				message.includeInLayout=false;
+				message.visible=false;
+				
+				var carlen:int=DataPump.BdatMapList.length;
+				var i:int=0;
+			//	   carlen=1;
+				if(carlen>0)
+				{
+					 
+						for(i=0;i<carlen;i++)
+						{
+							switch(i)
+							{
+								case 0:car0.includeInLayout=true;
+									car0.visible=true;
+									car0.label="车辆"+DataPump.BdatMapList[i].id;
+									car0.name=DataPump.BdatMapList[i].id.toString();
+									
+									break;
+								case 1:car1.includeInLayout=true;
+									car1.visible=true;
+									car1.label="车辆"+DataPump.BdatMapList[i].id;
+									car1.name=DataPump.BdatMapList[i].id.toString();
+									
+									break;
+								case 2:car2.includeInLayout=true;
+									car2.visible=true;
+									car2.label="车辆"+DataPump.BdatMapList[i].id;
+									car2.name=DataPump.BdatMapList[i].id.toString();
+									break;
+								case 3:car3.includeInLayout=true;
+									car3.visible=true;
+									car3.label="车辆"+DataPump.BdatMapList[i].id;
+									car3.name=DataPump.BdatMapList[i].id.toString();
+									break;
+								default:break;
+							}
+							
+						}
+					 
+				}
+				else
+				{
+					carlen=DataPump.GpsMapList.length;
+					if(carlen>0)
+					{
+						for(i=0;i<carlen;i++)
+						{
+							switch(i)
+							{
+								case 0:car0.includeInLayout=true;
+									car0.visible=true;
+									car0.label="车辆"+DataPump.GpsMapList[i].id;
+									car0.name=DataPump.GpsMapList[i].id.toString();
+									
+									break;
+								case 1:car1.includeInLayout=true;
+									car1.visible=true;
+									car1.label="车辆"+DataPump.GpsMapList[i].id;
+									car1.name=DataPump.GpsMapList[i].id.toString();
+									
+									break;
+								case 2:car2.includeInLayout=true;
+									car2.visible=true;
+									car2.label="车辆"+DataPump.GpsMapList[i].id;
+									car2.name=DataPump.GpsMapList[i].id.toString();
+									break;
+								case 3:car3.includeInLayout=true;
+									car3.visible=true;
+									car3.label="车辆"+DataPump.GpsMapList[i].id;
+									car3.name=DataPump.GpsMapList[i].id.toString();
+									break;
+								default:break;
+							}
+							
+						}
+					}
+					else
+					{
+						//	trace("message.includeInLayout=true");
+						fadein.end();
+						message.includeInLayout=true;
+						message.visible=true;
+						timer=new Timer(1000,1);
+						timer.addEventListener(TimerEvent.TIMER,timerHandle,false,0,true);
+						timer.start();
+					}
+				}
+				
+				
+			}
+			private function timerHandle(e:TimerEvent):void
+			{
+				message.includeInLayout=false;
+				message.visible=false;
+				timer.stop();
+				timer.removeEventListener(TimerEvent.TIMER,timerHandle);
+				dispatchEvent(new Event("nocar",true));
+			//	trace("message.includeInLayout=false");
+			}
+			private function carSelected(e:MouseEvent):void
+			{
+			//	trace("carSelected"+e.currentTarget.name);
+				dispatchEvent(new MyEvent("carSelected",int(e.currentTarget.name),true));
+			}
+			private function removeHandle():void
+			{
+			//	trace("removeHandle()");
+			}
+			
+		]]>
+	</fx:Script>
+	<s:VGroup width="220"   gap="0">
+		<s:Label hideEffect="{fadein}"  id="message" includeIn="default"  itemCreationPolicy="immediate" width="220" height="60" verticalAlign="middle"  textAlign="center"  includeInLayout="false" visible="false" fontFamily="Verdana" text="当前没有正在行驶的车辆!" fontSize="18" color="haloblue" backgroundColor="#ffffff" backgroundAlpha="0.7"/>
+ 		<mx1:Button id="car0" click="carSelected(event)"   includeInLayout="false" visible="false" includeIn="default"  itemCreationPolicy="immediate"    skin="@Embed('assets/formbtnbg.png')"   width="220" height="60"  fontFamily="Verdana" fontSize="18" color="0xffffff" textRollOverColor="0xffffff" textSelectedColor="0xffffff"/>
+		<mx1:Button id="car1" click="carSelected(event)"   includeInLayout="false" visible="false"  includeIn="default"  itemCreationPolicy="immediate"   skin="@Embed('assets/formbtnbg.png')"   width="220" height="60"  fontFamily="Verdana" fontSize="18" color="0xffffff" textRollOverColor="0xffffff" textSelectedColor="0xffffff"/>
+		<mx1:Button id="car2" click="carSelected(event)"   includeInLayout="false" visible="false"  includeIn="default"  itemCreationPolicy="immediate"   skin="@Embed('assets/formbtnbg.png')"   width="220" height="60"  fontFamily="Verdana" fontSize="18" color="0xffffff" textRollOverColor="0xffffff" textSelectedColor="0xffffff"/>
+		<mx1:Button id="car3" click="carSelected(event)"   includeInLayout="false" visible="false" includeIn="default"  itemCreationPolicy="immediate"    skin="@Embed('assets/formbtnbg.png')"   width="220" height="60"  fontFamily="Verdana" fontSize="18" color="0xffffff" textRollOverColor="0xffffff" textSelectedColor="0xffffff"/>
+    </s:VGroup>
+</mx1:Canvas>

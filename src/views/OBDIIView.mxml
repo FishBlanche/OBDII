@@ -1,0 +1,635 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" xmlns:mx="library://ns.adobe.com/flex/mx" xmlns:comps="components.*"   title="主页视图" actionBarVisible="false" creationComplete="create()" xmlns:core="baidu.map.core.*">
+	<fx:Declarations>
+		<!--s:HTTPService id="transLoc" url="http://api.map.baidu.com/geocoder/v2/?ak=FA0d58214f5d7b41c6ff6803a651eb1a&amp;location={curlat},{curlng}&amp;coordtype=wgs84ll" result="ds_resulted (event)" fault="faultHandle(event)"/-->
+		 <s:Fade alphaFrom="0.5" alphaTo="1" duration="600" id="fadeout"/>
+		<mx:WipeRight id="wipeOut" duration="1000"/>
+		<mx:WipeRight  id="wipeRight" duration="600"/>
+		
+	    <!--mx:WipeLeft id="wipeLeft" duration="600" effectEnd="{setbtn.enabled=true;}"/-->
+		<s:Move id="mov" target="{subjectTitle}" xTo="{this.width-550}" yTo="85" duration="1000" />
+		<s:Linear id="ln"/>
+		<s:Scale   easer="{ln}"    effectEnd="{subjectTitle.horizontalCenter=undefined;subjectTitle.verticalCenter=undefined;mov.play();}"   id="sc" autoCenterTransform="true" scaleXFrom="0.3" scaleYFrom="0.3" scaleXTo="1" scaleYTo="1" duration="2000"/>
+		<mx:WipeRight  id="gaugewipeRight" duration="400"/>
+		<mx:WipeLeft id="gaugewipeLeft" duration="400"/>
+ 	</fx:Declarations>
+ 
+	<fx:Style>
+		.myBtnStyle
+		{
+			skin:Embed(source="assets/button_bg.png");
+			overSkin:Embed(source="assets/button_pointer.png");
+			selectedDownSkin:Embed(source="assets/button_pointer.png");
+			fontFamily:"Verdana";
+			fontSize:25;
+			textAlign:"center";
+		   color:"0xffffff";
+		   textRollOverColor:"0xffffff";
+		   textSelectedColor:"0xffffff";
+		}
+	 
+	</fx:Style>
+ 
+	<s:states>
+		<s:State name="mainViewState"/>
+		<s:State name="realtimeState"/>
+		<s:State name="historyState"/>
+	</s:states>
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Label;
+			import mx.core.FlexGlobals;
+			import mx.messaging.ChannelSet;
+			import mx.messaging.channels.AMFChannel;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.remoting.RemoteObject;
+			
+			import spark.managers.PersistenceManager;
+			
+			import baidu.map.basetype.LngLat;
+			import baidu.map.basetype.Size;
+			import baidu.map.core.Map;
+			import baidu.map.event.MapEvent;
+			import baidu.map.layer.Layer;
+			import baidu.map.layer.RasterLayer;
+			import baidu.map.overlay.Marker;
+			import baidu.map.overlay.geometry.Polyline;
+			import baidu.map.symbol.PolylineSymbol;
+			
+			import components.CarListGroup;
+			import components.ChartGroup;
+			import components.DataPump;
+			import components.SettingGroup;
+			
+			import model.ChartMessage;
+			import model.MyEvent;
+			
+			import org.osmf.events.LoaderEvent;
+			[Embed(source="assets/sink.png")]
+			private var carpos:Class;
+			private var map:Map;
+			private var carlist:CarListGroup;
+			private var chartGp:ChartGroup;
+			private var dp:DataPump;
+			private var polyline:Polyline=new Polyline(new <LngLat>[],new PolylineSymbol(0x0000ff,0.8, 5));
+			private var currentSelectedId:int=-1;
+		 	public var intervalId:uint;
+			private	var persistencemanager:PersistenceManager=new PersistenceManager();
+			private var myAMF:AMFChannel=new AMFChannel;
+			private var channelSet:ChannelSet=new ChannelSet;
+			private var ro:RemoteObject = new RemoteObject;
+			
+			
+			private	 var vbatInfo:Array=[]; 
+			private	 var rpmInfo:Array=[];  
+			private	 var spdInfo:Array=[]; 
+			private	 var tpInfo:Array=[]; 
+			private	 var lodInfo:Array=[]; 
+			private	 var ectInfo:Array=[]; 
+			private	 var fliInfo:Array=[]; 
+			private	 var mphInfo:Array=[]; 
+			
+			private var dragStartflag:Boolean=false;
+		 	private var dragflag:Boolean=false;
+			
+			private function setChartData():void
+			{
+				 clearInterval(intervalId); 
+				  
+			      chartGp=new ChartGroup;
+				  chartGp.x=0;
+				  chartGp.y=0;
+				  chartGp.width=this.width;
+				  chartGp.height=this.height;
+				  this.addElement(chartGp);
+				  chartGp.includeInLayout=false;
+				  chartGp.visible=false;
+				  
+				  carlist=new CarListGroup;
+				  carlist.x=this.width/2-110;
+				  carlist.y=this.height/2-120;
+				  this.addElement(carlist);
+				  carlist.includeInLayout=false;
+				  carlist.visible=false;
+				  
+				
+				 
+			}
+			private function onSwipe(event:TransformGestureEvent):void {
+				// A swipe to the left means the offsetX property will be -1
+				// A swipe to the right means the offsetX position will be 1
+				if(event.offsetX == -1) {
+				//	doSwipeLeft();
+					rightImg.includeInLayout=false;
+					leftGaugeGp.visible=true;
+					rightGougeGp.visible=true;
+					
+				} else if(event.offsetX == 1) {
+				//	doSwipeRight();
+				}
+			}
+			private function onGaugeSwipe(event:TransformGestureEvent):void {
+				// A swipe to the left means the offsetX property will be -1
+				// A swipe to the right means the offsetX position will be 1
+				if(event.offsetX == -1) {
+					//	doSwipeLeft();
+					 
+				} else if(event.offsetX == 1) {
+					//	doSwipeRight();
+					leftGaugeGp.visible=false;
+					rightGougeGp.visible=false;
+					rightImg.includeInLayout=true;
+				}
+			}
+			 private function create():void
+			 {
+				 if(!dp)
+				 {
+					 dp=new DataPump;
+				 }
+				//  this.addEventListener("setting_Complete",settingComplete_Handle,false,0,true);
+				  this.addEventListener("homeView",Exit_RealtimeView,false,0,true);
+				  this.addEventListener("AllCarView",showCarList,false,0,true);
+				  this.addEventListener("nocar",nocar_Handle,false,0,true);
+				  this.addEventListener("carSelected",carSelected_Handle,false,0,true);
+				  dp.addEventListener("positionChange",positionChange_Handle,false,0,true);
+				  dp.addEventListener("bdatValueChange",bdatValueChange_Handle,false,0,true);
+				  this.addEventListener("backToHistory",removechartGp,false,0,true);
+				  //setChartData(); 
+				  Multitouch.inputMode = MultitouchInputMode.GESTURE;
+				  	 
+				   intervalId = setInterval(setChartData,3000);
+				 
+			 }
+			/*
+			private function settingComplete_Handle(e:Event):void
+			{
+			     sg.visible=false;
+			}*/
+			private function removeCarList():void
+			{
+				if(carlist)
+				{
+					carlist.includeInLayout=false;
+					carlist.visible=false;
+				}
+			}
+			private function Exit_RealtimeView(e:Event):void
+			{
+				removeCarList();
+				if(this.currentState=="realtimeState")
+				{
+				//	setGaugeInvisible();
+					 
+					map.clearOverlays();
+					ui.removeChild(map);
+				 /*
+					leftGaugeGp.visible=false;
+					rightGougeGp.visible=false;*/
+					rightImg.includeInLayout=true; 
+				}
+				this.currentState="mainViewState";
+				FlexGlobals.topLevelApplication.addEventListener(MouseEvent.MOUSE_DOWN,OBDII.moveWindow,false,0,true);
+			//	NativeApplication.nativeApplication.activeWindow.addEventListener(MouseEvent.MOUSE_DOWN,OBDII.moveWindow,false,0,true);
+			}
+			private function nocar_Handle(e:Event):void
+			{
+				removeCarList();
+			}
+			
+			private function bdatValueChange_Handle(e:MyEvent):void
+			{
+			//	trace("bdatValueChange_Handle"+e.data);
+				if(e.data==currentSelectedId)
+				{
+				//	trace("bdatValueChange_Handle"+e.data);
+					datashow(e.data);
+				}
+				else
+				{
+					return;
+				}
+			}
+			private function positionChange_Handle(e:MyEvent):void
+			{
+				//trace("positionChange_Handle"+e.data);
+				if(e.data==currentSelectedId)
+				{
+					pathshow(e.data);
+				}
+				else
+				{
+					return;
+				}
+			}
+			private function carSelected_Handle(e:MyEvent):void
+			{
+			 //	trace("carSelected_Handle"+e.data);
+				removeCarList();
+				currentSelectedId=e.data;
+				if(this.currentState=="realtimeState")
+				{
+					GaugeOriginSet();
+					pathshow(e.data);
+					datashow(e.data);
+				}
+				if(this.currentState=="historyState")
+				{
+					//this.addElement(chartGp);
+					chartGp.includeInLayout=true;
+					chartGp.visible=true;
+					intervalId = setInterval(searchChartData,650);
+				 
+				}
+				
+			}
+			private function searchChartData():void
+			{
+			 	clearInterval(intervalId); 
+			//	 trace("searchChartData");
+				myAMF.url = "http://61.160.106.206:28088/obd_server/messagebroker/amf";
+
+				channelSet.addChannel(myAMF); 
+				ro.channelSet = channelSet;
+				ro.destination="BdatMessageController";
+				ro.addEventListener(ResultEvent.RESULT,result_Handle);
+				ro.addEventListener(FaultEvent.FAULT,faultHandle);
+			 	ro.findHistoryData(currentSelectedId);  
+			 
+			}
+			private function arraydataClear():void
+			{
+				var vbatlen:int=vbatInfo.length;
+				var i:int=0;
+				for(i=0;i<vbatlen;i++)
+				{
+					vbatInfo.pop();
+				}
+				var rpmlen:int=rpmInfo.length;
+				for(i=0;i<rpmlen;i++)
+				{
+					rpmInfo.pop();
+				}
+				var spdlen:int=spdInfo.length;
+				for(i=0;i<spdlen;i++)
+				{
+					spdInfo.pop();
+				}
+				var tplen:int=tpInfo.length;
+				for(i=0;i<tplen;i++)
+				{
+					tpInfo.pop();
+				}
+				var lodlen:int=lodInfo.length;
+				for(i=0;i<lodlen;i++)
+				{
+					lodInfo.pop();
+				}
+				var ectlen:int=ectInfo.length;
+				for(i=0;i<ectlen;i++)
+				{
+					ectInfo.pop();
+				}
+				var flilen:int=fliInfo.length;
+				for(i=0;i<flilen;i++)
+				{
+					fliInfo.pop();
+				}
+				var mphlen:int=mphInfo.length;
+				for(i=0;i<mphlen;i++)
+				{
+					mphInfo.pop();
+				}
+				
+			}
+			private function result_Handle(event:ResultEvent):void{
+				arraydataClear();
+				
+				for(var e:Object in event.result ){
+				 //  trace("event.result[e].reciveDate"+event.result[e].reciveDate+","+event.result[e].vbat);
+					var vbattempObject:ChartMessage=new ChartMessage;
+					vbattempObject.myValue=event.result[e].vbat;
+					vbattempObject.myDate=event.result[e].reciveDate;
+					vbatInfo.push(vbattempObject);
+					
+					var rpmtempObject:ChartMessage=new ChartMessage;
+					rpmtempObject.myValue=event.result[e].rpm;
+					rpmtempObject.myDate=event.result[e].reciveDate;
+					rpmInfo.push(rpmtempObject);
+					
+					var spdtempObject:ChartMessage=new ChartMessage;
+					spdtempObject.myValue=event.result[e].spd;
+					spdtempObject.myDate=event.result[e].reciveDate;
+					spdInfo.push(spdtempObject);
+					
+					var tptempObject:ChartMessage=new ChartMessage;
+					tptempObject.myValue=event.result[e].tp;
+					tptempObject.myDate=event.result[e].reciveDate;
+					tpInfo.push(tptempObject);
+					
+					var lodtempObject:ChartMessage=new ChartMessage;
+					lodtempObject.myValue=event.result[e].lod;
+					lodtempObject.myDate=event.result[e].reciveDate;
+					lodInfo.push(lodtempObject);
+					
+					var ecttempObject:ChartMessage=new ChartMessage;
+					ecttempObject.myValue=event.result[e].ect;
+					ecttempObject.myDate=event.result[e].reciveDate;
+					ectInfo.push(ecttempObject);
+					
+					var flitempObject:ChartMessage=new ChartMessage;
+					flitempObject.myValue=event.result[e].fli;
+					flitempObject.myDate=event.result[e].reciveDate;
+					fliInfo.push(flitempObject);
+					
+					var mphtempObject:ChartMessage=new ChartMessage;
+					mphtempObject.myValue=event.result[e].mph;
+					mphtempObject.myDate=event.result[e].reciveDate;
+					mphInfo.push(mphtempObject);
+				}
+				chartGp.vbatchart.data=vbatInfo;
+				chartGp.rpmchart.data=rpmInfo;
+				chartGp.spdchart.data=spdInfo;
+				chartGp.tpchart.data=tpInfo;
+				chartGp.lodchart.data=lodInfo;
+				chartGp.ectchart.data=ectInfo;
+			    chartGp.flichart.data=fliInfo;
+				chartGp.mphchart.data=mphInfo;
+				
+				
+			}
+			 
+			private  function  faultHandle(event:FaultEvent):void
+			{  
+				trace("faultHandle(event:FaultEvent) request error");
+				trace(event.fault.faultString);
+				trace(event.fault.faultDetail);
+			}
+			private function removechartGp(e:Event):void
+			{
+				//this.removeElement(chartGp);
+				chartGp.includeInLayout=false;
+				chartGp.visible=false;
+			}
+			private function pathshow(curActive:int):void
+			{
+				
+				var len:int=DataPump.GpsMapList.length;
+				var i:int=0;
+				for(i=0;i<len;i++)
+				{
+					if(curActive==DataPump.GpsMapList[i].id)
+					{
+						 
+					 if(!dragStartflag)
+					 {
+						 map.clearOverlays();
+						 if(dragflag)
+						 {
+							 map.zoom--;
+							 map.zoom++;
+							 dragflag=false;
+						 }
+						 
+						 polyline.coords=DataPump.GpsMapList[i].gpsVector;
+						 map.addOverlay(polyline);
+						 
+						 var marker:Marker=new Marker();
+						 marker.position=polyline.coords[polyline.coords.length-1];
+						 var carImg:Bitmap=new carpos();
+						 marker.icon=carImg;
+						 map.addOverlay(marker);
+					 }
+					}
+				}
+			}
+			private function datashow(curActive:int):void
+			{
+			//	setGaugeVisible();
+			//	trace("datashow");
+			    var len:int=DataPump.BdatSensingList.length;
+				for(var i:int=0;i<len;i++)
+				{
+					if(leftGaugeGp&&DataPump.BdatSensingList[i].id==curActive)
+					{
+					//	trace("DataPump.BdatSensingList[i].id==curActive");
+						if(leftGaugeGp.circularGaugeRPM)
+						{
+							leftGaugeGp.circularGaugeRPM.angleValue=DataPump.BdatSensingList[i].rpm;
+						}
+						if(leftGaugeGp.circularGaugeSPD)
+						{
+							leftGaugeGp.circularGaugeSPD.angleValue=DataPump.BdatSensingList[i].spd;
+						}
+						if(leftGaugeGp.circularGaugeTP)
+						{
+							leftGaugeGp.circularGaugeTP.angleValue=DataPump.BdatSensingList[i].tp;
+						}
+						if(leftGaugeGp.circularGaugeLOD)
+						{
+							leftGaugeGp.circularGaugeLOD.angleValue=DataPump.BdatSensingList[i].lod;
+						}
+						if(rightGougeGp.circularGaugeECT)
+						{
+							rightGougeGp.circularGaugeECT.angleValue=DataPump.BdatSensingList[i].ect;
+						}
+						if(rightGougeGp.circularGaugevbat)
+						{
+							rightGougeGp.circularGaugevbat.angleValue=DataPump.BdatSensingList[i].vbat;
+						}
+						if(rightGougeGp.circularGaugefli)
+						{
+							rightGougeGp.circularGaugefli.angleValue=DataPump.BdatSensingList[i].fli;
+						}
+						if(rightGougeGp.circularGaugemph)
+						{
+							rightGougeGp.circularGaugemph.angleValue=DataPump.BdatSensingList[i].mph; 
+						}
+					}
+				}
+				
+			}
+			private function GaugeOriginSet():void
+			{
+				leftGaugeGp.circularGaugeRPM.angleValue=0;
+			    leftGaugeGp.circularGaugeSPD.angleValue=0;
+				leftGaugeGp.circularGaugeTP.angleValue=0;
+				leftGaugeGp.circularGaugeLOD.angleValue=0;
+				
+				rightGougeGp.circularGaugeECT.angleValue=0;
+				rightGougeGp.circularGaugevbat.angleValue=0;
+				rightGougeGp.circularGaugefli.angleValue=0;
+				rightGougeGp.circularGaugemph.angleValue=0;
+			}
+			/*
+			private function setGaugeInvisible():void
+			{ 
+				circularGaugeRPM.visible=false;
+				
+				circularGaugeSPD.visible=false;
+				
+				circularGaugeTP.visible=false;
+				circularGaugeLOD.visible=false;
+				circularGaugeECT.visible=false;
+				circularGaugevbat.visible=false;
+				circularGaugefli.visible=false;
+				circularGaugemph.visible=false; 
+			}
+			private function setGaugeVisible():void
+			{ 
+				if(!circularGaugeRPM.visible)
+				{
+					circularGaugeRPM.visible=true;
+				}
+			
+				if(!circularGaugeSPD.visible)
+				{
+					circularGaugeSPD.visible=true;
+				}
+				
+				if(!circularGaugeTP.visible)
+				{
+					circularGaugeTP.visible=true;
+				}
+				if(!circularGaugeLOD.visible)
+				{
+					circularGaugeLOD.visible=true;
+				}
+				if(!circularGaugeECT.visible)
+				{
+					circularGaugeECT.visible=true;
+				}
+				if(!circularGaugevbat.visible)
+				{
+					circularGaugevbat.visible=true;
+				}
+				if(!circularGaugefli.visible)
+				{
+					circularGaugefli.visible=true;
+				}
+				if(!circularGaugemph.visible)
+				{
+					circularGaugemph.visible=true;
+				} 
+			} */
+			private function showCarList(e:Event):void
+			{
+			//	trace("showCarList");
+				
+				carlist.includeInLayout=true;
+				carlist.visible=true;
+
+					
+			
+			// 	menuGp.listBtn.enabled=false;
+			}
+			/*
+			private function showSetting():void
+			{
+				setbtn.enabled=false;
+				sg.visible=true;
+		 
+			}*/
+			private function mapDragStart_Handle(e:MapEvent)
+			{
+			 
+				 dragStartflag=true;
+				 dragflag=true;
+			}
+			private function mapDragEnd_Handle(e:MapEvent)
+			{
+				
+				 map.zoom++;
+				 map.zoom--;
+				 dragStartflag=false;
+			}
+			private function RealTimeShow():void
+			{
+				if(!map)
+				{
+					map= new Map(new Size(ui.width,ui.height));
+					map.centerAndZoom(new LngLat(120.382613,31.48745),15);
+					var layer:Layer = new RasterLayer("BaiduMap", map);
+					map.addLayer(layer); 
+					map.removeChildAt(4);//删除百度logo
+					map.addEventListener(TransformGestureEvent.GESTURE_ZOOM,zoom,false,0,true);
+					map.addEventListener(MapEvent.DRAG_START,mapDragStart_Handle,false,0,true);
+			        map.addEventListener(MapEvent.DRAG_END,mapDragEnd_Handle,false,0,true);
+				}
+				ui.addChild(map);
+				map.centerAndZoom(new LngLat(120.382613,31.48745),15);
+				/*
+				var gpsVect:Vector.<LngLat>=new Vector.<LngLat>;
+				gpsVect.push(new LngLat(120.380108,31.485494));
+				gpsVect.push(new LngLat(120.380171,31.485063));
+				gpsVect.push(new LngLat(120.380647,31.485016));
+				gpsVect.push(new LngLat(120.381555,31.48517));
+				gpsVect.push(new LngLat(120.381842,31.485186));
+				gpsVect.push(new LngLat(120.38177,31.486079));
+				polyline.coords=gpsVect;
+				map.addOverlay(polyline);
+				
+				var marker:Marker=new Marker();
+				marker.position=polyline.coords[polyline.coords.length-1];
+				var carImg:Bitmap=new carpos();
+				marker.icon=carImg;
+				map.addOverlay(marker);*/
+				/*
+				var scaler:Scaler = new Scaler(map);
+				scaler.offset=new Size(18,65);
+				map.addControl(scaler);*/
+				
+			}
+			private function zoom(event:TransformGestureEvent):void
+			{
+				
+				if (event.phase==GesturePhase.BEGIN)
+				{
+					//lb.text="TransformGestureEvent"+event.scaleX+","+event.scaleY;
+					if(event.scaleX>1&&event.scaleY>1) { //BMapAnimation.animate(FlexGlobals.topLevelApplication.map,null,1000,1);     
+						map.zoom++;
+					}
+					else if(event.scaleX<1&&event.scaleY<1)  {//BMapAnimation.animate(FlexGlobals.topLevelApplication.map,null,1000,1);
+						map.zoom--;
+					} 
+					
+				}
+				
+			}
+			 
+		]]>
+		
+	</fx:Script>
+<s:Image   source="@Embed('assets/1024_768.jpg')" width="{this.width}" height="{this.height}" smooth="true" cacheAsBitmap="true" scaleMode="stretch"/>
+	
+<!--mx:Button includeIn="mainViewState" id="setbtn" addedEffect="{wipeOut}" click="showSetting()"     styleName="myBtnStyle" label="配置" width="250" height="60" x="20" y="20"      cacheAsBitmap="true"      textAlign="center"  /-->
+<mx:Button includeIn="mainViewState" addedEffect="{wipeOut}" click="{FlexGlobals.topLevelApplication.removeEventListener(MouseEvent.MOUSE_DOWN,OBDII.moveWindow);this.currentState='realtimeState';RealTimeShow();}"   styleName="myBtnStyle" label="实时车况" width="250" height="60" x="20" y="20"  cacheAsBitmap="true" textAlign="center"  />
+<mx:Button includeIn="mainViewState" addedEffect="{wipeOut}" click="{FlexGlobals.topLevelApplication.removeEventListener(MouseEvent.MOUSE_DOWN,OBDII.moveWindow);this.currentState='historyState';	 }"   styleName="myBtnStyle" label="行车记录" width="250" height="60" x="20" y="90"   cacheAsBitmap="true" textAlign="center" />
+<!--comps:SettingGroup includeIn="mainViewState" hideEffect="{wipeLeft}" showEffect="{wipeRight}" id="sg" visible="false"    x="20" y="350" width="400" height="200"/-->
+<s:Image includeIn="mainViewState" source="@Embed('assets/titleImg.png')"   creationCompleteEffect="{sc}"  horizontalCenter="0" verticalCenter="0"  id="subjectTitle"/>
+<mx:UIComponent id="ui" width="{this.width}" height="{this.height}" />
+	
+ <comps:MenuGroup id="menuGp" width="{this.width}"   includeIn="realtimeState,historyState"/>
+	
+	<comps:LeftPanel showEffect="{gaugewipeRight}" hideEffect="{gaugewipeLeft}" id="leftGaugeGp" x="0" y="65" height="{this.height}" width="185"  includeIn="realtimeState"  />
+	<comps:RightPanel creationComplete="{ rightGougeGp.addEventListener(TransformGestureEvent.GESTURE_SWIPE, onGaugeSwipe,false,0,true);}" showEffect="{gaugewipeLeft}" hideEffect="{gaugewipeRight}" id="rightGougeGp" x="{this.width-185}" y="65" height="{this.height}" width="180"   includeIn="realtimeState" />
+ <!--s:Image id="leftImg" source="@Embed('assets/transparentbg.png')" cacheAsBitmap="true"	  includeIn="realtimeState" x="0" y="65"/-->
+ <s:Image creationComplete="{  rightImg.addEventListener(TransformGestureEvent.GESTURE_SWIPE, onSwipe,false,0,true);}" id="rightImg" source="@Embed('assets/transparentbg.png')" cacheAsBitmap="true"	  includeIn="realtimeState" x="{this.width-90}" y="65"/>
+	<!--ns1:AnyChartFlex    x="5" y="55"   addedToStage="addToStageRPM()"  width="200" height="200" id="circularGaugeRPM"   visible="false" />
+	<ns1:AnyChartFlex addedToStage="addToStageSPD()"  x="25" y="225"  width="150" height="150" id="circularGaugeSPD"  visible="false" />
+	<ns1:AnyChartFlex addedToStage="addToStageTP()" x="25" y="345" width="150" height="150" id="circularGaugeTP"  visible="false" />
+	<ns1:AnyChartFlex addedToStage="addToStageLOD()" x="25" y="465"  width="150" height="150" id="circularGaugeLOD"  visible="false" />
+  
+	 
+		<ns1:AnyChartFlex addedToStage="addToStageECT()" x="{this.width-150}" y="65" width="150" height="150" id="circularGaugeECT"  visible="false" />
+		<ns1:AnyChartFlex addedToStage="addToStagevbat()" x="{this.width-150}" y="225"   width="150" height="150" id="circularGaugevbat"  visible="false" />
+		<ns1:AnyChartFlex addedToStage="addToStagefli()" x="{this.width-150}" y="345" width="150" height="150" id="circularGaugefli"  visible="false" />
+		<ns1:AnyChartFlex addedToStage="addToStagemph()" x="{this.width-150}"  y="465"  width="150" height="150" id="circularGaugemph"  visible="false" /-->
+	
+	
+	
+ 
+</s:View>

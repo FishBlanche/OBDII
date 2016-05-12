@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx1:Canvas  xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			xmlns:s="library://ns.adobe.com/flex/spark" xmlns:mx1="library://ns.adobe.com/flex/mx"   height="65"    >
+	<s:HGroup width="100%" height="60" gap="0">
+		<mx1:Button click="homeView()"    skin="@Embed('assets/menubg.png')" icon="@Embed('assets/homeIcon.png')" labelPlacement="bottom" label="首页" width="50%" height="65"  fontFamily="Verdana" fontSize="18" color="haloblue" textRollOverColor="haloblue" textSelectedColor="haloblue"/>
+		<mx1:Button  id="listBtn" click="AllCarView()"   skin="@Embed('assets/menubg.png')" icon="@Embed('assets/carIcon.png')" labelPlacement="bottom" label="车辆" width="50%" height="65" fontFamily="Verdana" fontSize="18" color="haloblue" textRollOverColor="haloblue" textSelectedColor="haloblue"/>
+	</s:HGroup>
+	<fx:Script>
+		<![CDATA[
+			import mx.core.FlexSprite;
+		 
+			private function homeView():void
+			{
+				 
+				dispatchEvent(new Event("homeView",true));
+			}
+			private function AllCarView():void
+			{
+				dispatchEvent(new Event("AllCarView",true));
+			}
+		]]>
+	</fx:Script>
+</mx1:Canvas>

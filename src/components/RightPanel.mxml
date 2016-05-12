@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx1:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			xmlns:s="library://ns.adobe.com/flex/spark" xmlns:mx1="library://ns.adobe.com/flex/mx" xmlns:comps="components.*" horizontalScrollPolicy="off" verticalScrollPolicy="off"> 
+	<fx:Script>
+		<![CDATA[
+			private function mphComplete():void
+			{
+				circularGaugemph.logoText="瞬时油耗";
+				circularGaugemph.radius=45;
+				circularGaugemph.labelsRadius=-15;
+				circularGaugemph.unitText="L/h";
+			}
+			private function ectComplete():void
+			{
+				circularGaugeECT.logoText="冷却液水温" ;
+				circularGaugeECT.radius=45;
+				circularGaugeECT.labelsRadius=-15;
+				circularGaugeECT.unitText="℃";
+			}
+			private function fliComplete():void
+			{
+				circularGaugefli.logoText="剩余油量";
+				circularGaugefli.radius=45;
+				circularGaugefli.labelsRadius=-15;
+				circularGaugefli.unitText="%";
+			}
+			private function vbatComplete():void
+			{
+				circularGaugevbat.logoText="电瓶电压";
+				circularGaugevbat.radius=45;
+				circularGaugevbat.labelsRadius=-15;
+				circularGaugevbat.unitText="V";
+			}
+		]]>
+	</fx:Script>
+	<comps:Gauge  calibrations="[0,60,120,180,240,300,360,420,480,540,600]"        id="circularGaugemph" x="15" y="0" width="150" height="150"  tickFontSize="8" tickColor="#ffffff" temperatureValSize="12" creationComplete="mphComplete()" />
+	
+	
+	<comps:Gauge  calibrations="[-40,-14,12,38,64,90,116,142,168,194,220]"           x="15" y="155" width="150" height="150"    id="circularGaugeECT" temperatureValSize="12"  tickFontSize="8" tickColor="#ffffff"  creationComplete="ectComplete()"/>
+	<comps:Gauge  calibrations="[0,10,20,30,40,50,60,70,80,90,100]"          x="15" y="310" width="150" height="150"    id="circularGaugefli" temperatureValSize="12"  tickFontSize="8" tickColor="#ffffff"   creationComplete="fliComplete()"/>
+	<comps:Gauge  calibrations="[0,4,6,8,10,12,14,16,18,20]"        id="circularGaugevbat" x="15" y="465" width="150" height="150"  tickFontSize="8" tickColor="#ffffff" temperatureValSize="12"  creationComplete="vbatComplete()"
+					  />
+</mx1:Canvas>
